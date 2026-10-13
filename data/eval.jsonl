@@ -1,0 +1,9 @@
+{"question": "年假有几天？", "expected_source": "员工手册.md", "expected_keywords": ["5天", "10天", "15天"]}
+{"question": "公司的发薪日是每个月几号？", "expected_source": "员工手册.md", "expected_keywords": ["10日"]}
+{"question": "连续两个季度绩效为C会怎么样？", "expected_source": "员工手册.md", "expected_keywords": ["绩效改进", "PIP"]}
+{"question": "智答平台怎么收费？", "expected_source": "产品FAQ.md", "expected_keywords": ["10万", "18万", "并发"]}
+{"question": "智答平台支持哪些文档格式？", "expected_source": "产品FAQ.md", "expected_keywords": ["PDF", "Word", "Excel"]}
+{"question": "私有化部署集群版最低需要什么配置？", "expected_source": "产品FAQ.md", "expected_keywords": ["3台", "8核32G"]}
+{"question": "普通员工出差住宿报销标准是多少？", "expected_source": "差旅报销制度.txt", "expected_keywords": ["400元"]}
+{"question": "出差回来后几天内要提交报销单？", "expected_source": "差旅报销制度.txt", "expected_keywords": ["5个工作日"]}
+{"question": "出差每天的餐补是多少？", "expected_source": "差旅报销制度.txt", "expected_keywords": ["100元"]}

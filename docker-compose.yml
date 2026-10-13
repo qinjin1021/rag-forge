@@ -1,0 +1,13 @@
+# 企业智能RAG问答系统 - 一键部署
+# 用法: docker compose up -d --build
+services:
+  rag-app:
+    build: .
+    container_name: rag-qa-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env          # API Key等配置从环境注入, 不打进镜像
+    volumes:
+      - ./data:/app/data   # 向量库/模型缓存/知识库文档持久化到宿主机
+    restart: unless-stopped

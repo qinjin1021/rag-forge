@@ -1,0 +1,31 @@
+# ===== Web框架 =====
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
+
+# ===== 配置与数据校验 =====
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# ===== LLM客户端(OpenAI兼容协议, DeepSeek/硅基流动等通用) =====
+openai>=1.30.0
+
+# ===== 向量数据库 =====
+chromadb>=0.5.0
+
+# ===== 本地Embedding与重排序模型 =====
+# 说明: 会自动安装torch, 首次安装体积较大(约2GB), 仅CPU推理即可
+sentence-transformers>=2.7.0
+
+# ===== 混合检索(BM25关键词检索) =====
+rank-bm25>=0.2.2
+jieba>=0.42.1
+
+# ===== 文档解析 =====
+python-docx>=1.1.0
+pypdf>=4.0.0
+openpyxl>=3.1.0
+
+# ===== 测试与HTTP客户端 =====
+pytest>=8.0.0
+httpx>=0.27.0

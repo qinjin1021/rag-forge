@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智答 · 企业知识库问答</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --card: #ffffff; --primary: #3b6ef5; --primary-dark: #2f56cc;
+    --text: #1f2430; --muted: #7a8194; --border: #e4e8f0; --user-bg: #3b6ef5;
+    --ok: #16a34a; --warn: #d97706; --err: #dc2626; --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+  /* ============ 侧边栏 ============ */
+  #sidebar { width: 280px; background: var(--card); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+  #logo { padding: 20px; border-bottom: 1px solid var(--border); }
+  #logo h1 { font-size: 18px; display: flex; align-items: center; gap: 8px; }
+  #logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+  #logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .side-section { padding: 14px 16px; overflow-y: auto; flex: 1; }
+  .side-title { font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 1px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .doc-item { display: flex; align-items: center; justify-content: space-between; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; font-size: 13px; background: #fafbfd; }
+  .doc-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+  .doc-item .chunks { color: var(--muted); font-size: 11px; margin-left: 6px; flex-shrink: 0; }
+  .doc-item .del { color: var(--muted); cursor: pointer; margin-left: 8px; flex-shrink: 0; }
+  .doc-item .del:hover { color: var(--err); }
+  #side-actions { padding: 14px 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .btn { border: none; border-radius: 8px; padding: 10px; font-size: 13px; cursor: pointer; font-weight: 500; transition: .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-ghost { background: transparent; color: var(--primary); border: 1px dashed var(--primary); }
+  .btn-ghost:hover { background: #eef2fe; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ============ 主聊天区 ============ */
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #topbar { padding: 14px 24px; background: var(--card); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  #topbar .title { font-size: 15px; font-weight: 600; }
+  #new-chat { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 12px; color: var(--muted); }
+  #new-chat:hover { border-color: var(--primary); color: var(--primary); }
+
+  #chat { flex: 1; overflow-y: auto; padding: 24px; }
+  .msg-row { display: flex; margin-bottom: 18px; }
+  .msg-row.user { justify-content: flex-end; }
+  .avatar { width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; }
+  .msg-row.bot .avatar { background: linear-gradient(135deg, #3b6ef5, #7c4dff); margin-right: 12px; }
+  .msg-row.user .avatar { background: #8a93a8; margin-left: 12px; order: 2; }
+  .bubble { max-width: 72%; padding: 12px 16px; border-radius: var(--radius); font-size: 14px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
+  .msg-row.user .bubble { background: var(--user-bg); color: #fff; border-top-right-radius: 4px; }
+  .msg-row.bot .bubble { background: var(--card); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .bubble .cursor { display: inline-block; width: 2px; height: 16px; background: var(--primary); animation: blink .8s infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Agent过程指示器 */
+  .stages { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .stage { font-size: 11px; padding: 3px 10px; border-radius: 999px; background: #eef1f7; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .stage.active { background: #e6edff; color: var(--primary); }
+  .stage.active::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: blink .8s infinite; }
+  .stage.done { background: #e8f7ee; color: var(--ok); }
+  .stage.done::before { content: "✓"; }
+
+  /* 引用来源 */
+  .sources { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+  .sources .src-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .src-chip { display: block; font-size: 12px; color: var(--primary); background: #f0f4ff; border-radius: 8px; padding: 7px 10px; margin-bottom: 5px; text-decoration: none; }
+  .src-chip b { background: var(--primary); color: #fff; border-radius: 5px; padding: 0 6px; margin-right: 6px; font-size: 11px; }
+  .src-chip .score { color: var(--muted); font-size: 11px; }
+  .rewrite-tip { font-size: 11px; color: var(--warn); background: #fdf6ec; border-radius: 6px; padding: 4px 8px; margin-bottom: 8px; display: inline-block; }
+
+  /* 输入区 */
+  #input-area { padding: 16px 24px 20px; background: var(--card); border-top: 1px solid var(--border); }
+  #input-box { display: flex; gap: 10px; }
+  #query { flex: 1; border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; outline: none; resize: none; font-family: inherit; height: 48px; }
+  #query:focus { border-color: var(--primary); }
+  #send { padding: 0 26px; border-radius: 10px; background: var(--primary); color: #fff; border: none; font-size: 14px; cursor: pointer; }
+  #send:disabled { opacity: .5; cursor: not-allowed; }
+  #hint { font-size: 11px; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  #empty { text-align: center; margin-top: 10vh; color: var(--muted); }
+  #empty .big { font-size: 44px; margin-bottom: 12px; }
+  #empty .samples { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+  #empty .sample { background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; font-size: 13px; cursor: pointer; color: var(--text); }
+  #empty .sample:hover { border-color: var(--primary); color: var(--primary); }
+
+  #toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%); background: #1f2430; color: #fff; padding: 10px 22px; border-radius: 8px; font-size: 13px; opacity: 0; transition: .3s; pointer-events: none; z-index: 99; }
+  #toast.show { opacity: .95; }
+</style>
+</head>
+<body>
+
+<!-- ======== 侧边栏：知识库管理 ======== -->
+<aside id="sidebar">
+  <div id="logo">
+    <h1><span class="dot"></span>智答 · 知识库问答</h1>
+    <p>DeepSeek + 混合检索 + Agent编排</p>
+  </div>
+  <div class="side-section">
+    <div class="side-title">知识库文档 <span id="doc-total"></span></div>
+    <div id="doc-list"><p style="font-size:12px;color:var(--muted)">暂无文档，请上传或全量入库</p></div>
+  </div>
+  <div id="side-actions">
+    <button class="btn btn-primary" id="upload-btn">上传文档</button>
+    <input type="file" id="file-input" multiple accept=".txt,.md,.pdf,.docx,.xlsx" hidden>
+    <button class="btn btn-ghost" id="ingest-btn">全量入库 / 重建索引</button>
+  </div>
+</aside>
+
+<!-- ======== 主聊天区 ======== -->
+<main id="main">
+  <div id="topbar">
+    <span class="title">智能问答</span>
+    <button id="new-chat">开启新话题</button>
+  </div>
+  <div id="chat">
+    <div id="empty">
+      <div class="big">💬</div>
+      <div>基于企业知识库的智能问答，回答附带引用来源</div>
+      <div class="samples">
+        <span class="sample" onclick="quickAsk(this)">年假有几天？</span>
+        <span class="sample" onclick="quickAsk(this)">普通员工出差住宿标准是多少？</span>
+        <span class="sample" onclick="quickAsk(this)">智答平台怎么收费？</span>
+      </div>
+    </div>
+  </div>
+  <div id="input-area">
+    <div id="input-box">
+      <textarea id="query" placeholder="输入问题，Enter 发送，Shift+Enter 换行"></textarea>
+      <button id="send">发送</button>
+    </div>
+    <div id="hint">Agent 自动判断是否检索知识库 · 回答标注引用来源 · 无依据时拒答</div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const sessionId = "web-" + Math.random().toString(36).slice(2, 10);
+let busy = false;
+
+/* ================= 知识库管理 ================= */
+async function refreshDocs() {
+  const resp = await fetch("/api/documents");
+  const docs = await resp.json();
+  const list = $("doc-list");
+  $("doc-total").textContent = docs.length ? `${docs.length} 篇` : "";
+  if (!docs.length) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--muted)">暂无文档，请上传或全量入库</p>';
+    return;
+  }
+  list.innerHTML = docs.map(d => `
+    <div class="doc-item">
+      <span class="name" title="${d.source}">📄 ${d.source}</span>
+      <span class="chunks">${d.chunk_count}块</span>
+      <span class="del" onclick="deleteDoc('${d.source}')">✕</span>
+    </div>`).join("");
+}
+
+async function deleteDoc(source) {
+  if (!confirm(`确认删除文档「${source}」？`)) return;
+  const resp = await fetch(`/api/documents/${encodeURIComponent(source)}`, { method: "DELETE" });
+  resp.ok ? toast("已删除") : toast("删除失败");
+  refreshDocs();
+}
+
+$("upload-btn").onclick = () => $("file-input").click();
+$("file-input").onchange = async e => {
+  const files = e.target.files;
+  if (!files.length) return;
+  toast(`开始上传并解析 ${files.length} 个文件...`);
+  const form = new FormData();
+  for (const f of files) form.append("files", f);
+  const resp = await fetch("/api/documents/upload", { method: "POST", body: form });
+  const results = await resp.json();
+  const ok = results.filter(r => r.success);
+  const fail = results.filter(r => !r.success);
+  toast(ok.length ? `入库成功: ${ok.map(r => r.source).join("、")}` : "入库失败",
+        fail.length ? `；失败: ${fail.map(r => `${r.source}(${r.error})`).join("、")}` : "");
+  e.target.value = "";
+  refreshDocs();
+};
+
+$("ingest-btn").onclick = async () => {
+  toast("全量入库中，请稍候...");
+  const resp = await fetch("/api/documents/ingest", { method: "POST" });
+  const results = await resp.json();
+  toast(results.length ? `完成: ${results.filter(r => r.success).length}/${results.length} 篇成功` : "data/raw_docs 目录为空");
+  refreshDocs();
+};
+
+/* ================= 聊天 ================= */
+function addMsg(role, text) {
+  $("empty")?.remove();
+  const row = document.createElement("div");
+  row.className = `msg-row ${role}`;
+  row.innerHTML = role === "user"
+    ? `<div class="bubble"></div><div class="avatar">我</div>`
+    : `<div class="avatar">答</div><div class="wrap" style="min-width:0"><div class="stages"></div><div class="bubble" style="display:none"></div></div>`;
+  if (role === "user") row.querySelector(".bubble").textContent = text;
+  $("chat").appendChild(row);
+  scrollBottom();
+  return row;
+}
+
+function setStages(row, stages) {
+  const box = row.querySelector(".stages");
+  box.innerHTML = stages.map(s =>
+    `<span class="stage ${s.status}" data-name="${s.name}">${s.label}</span>`).join("");
+}
+
+function scrollBottom() { $("chat").scrollTop = $("chat").scrollHeight; }
+
+function quickAsk(el) { $("query").value = el.textContent; send(); }
+
+async function send() {
+  const query = $("query").value.trim();
+  if (!query || busy) return;
+  busy = true;
+  $("send").disabled = true;
+  $("query").value = "";
+  addMsg("user", query);
+
+  const row = addMsg("bot", "");
+  const stagesEl = row.querySelector(".stages");
+  const bubble = row.querySelector(".bubble");
+  let answer = "";
+
+  const stageDefs = [
+    { name: "analyze", label: "理解问题" },
+    { name: "retrieve", label: "检索知识库" },
+    { name: "generate", label: "生成回答" },
+  ];
+  setStages(row, stageDefs.map(s => ({ ...s, status: "" })));
+
+  function markStage(name, status) {
+    const el = stagesEl.querySelector(`[data-name="${name}"]`);
+    if (el) { el.className = `stage ${status}`; }
+  }
+
+  try {
+    const resp = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId, query }),
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split("\n\n");
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6);
+        if (payload === "[DONE]") continue;
+        const ev = JSON.parse(payload);
+
+        if (ev.type === "stage") {
+          const map = { analyze: "analyze", retrieve: "retrieve", retrieve_done: "retrieve", generate: "generate" };
+          const stageName = map[ev.stage];
+          if (stageName) markStage(stageName, ev.stage === "retrieve_done" ? "done" : "active");
+          if (ev.stage === "analyze") { markStage("analyze", "active"); }
+          if (ev.stage === "retrieve_done") markStage("analyze", "done");
+          if (ev.stage === "generate") { markStage("retrieve", "done"); markStage("generate", "active"); }
+        }
+        if (ev.type === "rewrite") {
+          if (ev.data && ev.data !== query) {
+            stagesEl.insertAdjacentHTML("afterend",
+              `<div class="rewrite-tip">🔍 Agent理解 → ${ev.data}</div>`);
+          }
+          if (!ev.need_retrieval) {
+            markStage("analyze", "done");
+            markStage("retrieve", "done");
+            stageDefs.forEach(() => {});
+            stagesEl.querySelector('[data-name="retrieve"]').style.display = "none";
+          }
+        }
+        if (ev.type === "delta") {
+          if (!bubble.style.display) {}
+          bubble.style.display = "block";
+          answer += ev.data;
+          bubble.innerHTML = renderAnswer(answer) + '<span class="cursor"></span>';
+          scrollBottom();
+        }
+        if (ev.type === "sources") {
+          if (ev.data.length) {
+            row.querySelector(".wrap").insertAdjacentHTML("beforeend", `
+              <div class="sources">
+                <div class="src-title">📚 引用来源</div>
+                ${ev.data.map(s => `
+                  <span class="src-chip" title="${s.snippet}">
+                    <b>[${s.index}]</b>${s.source} <span class="score">相关度 ${(s.score * 100).toFixed(0)}%</span>
+                  </span>`).join("")}
+              </div>`);
+          }
+        }
+        if (ev.type === "done") {
+          markStage("generate", "done");
+          bubble.innerHTML = renderAnswer(answer);
+          if (ev.data.latency_ms) {
+            stagesEl.insertAdjacentHTML("beforeend",
+              `<span class="stage done" style="background:#f1f3f7">${ev.data.latency_ms}ms</span>`);
+          }
+          scrollBottom();
+        }
+        if (ev.type === "error") {
+          bubble.style.display = "block";
+          bubble.innerHTML = `<span style="color:var(--err)">⚠ ${ev.data}</span>`;
+        }
+      }
+    }
+    if (!answer && !bubble.textContent) {
+      bubble.style.display = "block";
+      bubble.innerHTML = '<span style="color:var(--err)">⚠ 未收到回答，请检查服务端日志</span>';
+    }
+  } catch (err) {
+    bubble.style.display = "block";
+    bubble.innerHTML = `<span style="color:var(--err)">⚠ 请求失败: ${err.message}</span>`;
+  } finally {
+    busy = false;
+    $("send").disabled = false;
+    $("query").focus();
+  }
+}
+
+/* 把[1]角标渲染成小徽章样式 */
+function renderAnswer(text) {
+  const esc = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return esc.replace(/\[(\d+)\]/g,
+    '<b style="background:#e6edff;color:#3b6ef5;border-radius:4px;padding:0 5px;font-size:11px;margin:0 1px">$1</b>');
+}
+
+$("send").onclick = send;
+$("query").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+$("new-chat").onclick = async () => {
+  await fetch(`/api/chat/session/${sessionId}`, { method: "DELETE" });
+  $("chat").innerHTML = "";
+  toast("已开启新话题");
+};
+
+function toast(msg, extra = "") {
+  const t = $("toast");
+  t.textContent = msg + extra;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+refreshDocs();
+</script>
+</body>
+</html>
